@@ -117,6 +117,20 @@
       color: #555;
       font-size: 0.72rem;
     }
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      background: #0d0d0d;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+    }
+    .history-item .hname { color: #eee; font-weight: 600; }
+    .history-item .hid { color: #ff8080; font-family: monospace; font-size: 0.8rem; }
+    .history-empty { color: #666; font-size: 0.8rem; text-align: center; padding: 8px 0; }
   </style>
 </head>
 <body>
@@ -154,6 +168,17 @@
     </ol>
   </div>
 
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <h2 style="margin:0;">📜 History Upload</h2>
+      <div>
+        <button id="copyAllBtn" style="background:#333; color:white; font-size:0.75rem; margin-right:6px;">Copy All</button>
+        <button id="clearHistoryBtn" style="background:#5a1a1a; color:white; font-size:0.75rem;">Clear</button>
+      </div>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
   <div class="footer">
     <p>⚡ PACALANK TOOLS — dibuat untuk mempermudah manajemen musik Roblox</p>
     <p class="disclaimer">Pre-check copyright bersifat perkiraan, keputusan akhir tetap ada di sistem moderasi Roblox.</p>
@@ -163,6 +188,64 @@
     const fileInput = document.getElementById('fileInput');
     const checkBtn = document.getElementById('checkBtn');
     const resultsDiv = document.getElementById('results');
+    const historyList = document.getElementById('historyList');
+    const copyAllBtn = document.getElementById('copyAllBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+    function getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('pacalankHistory') || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory(list) {
+      localStorage.setItem('pacalankHistory', JSON.stringify(list));
+    }
+
+    function renderHistory() {
+      const list = getHistory();
+      if (list.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">Belum ada lagu yang berhasil diupload</div>';
+        return;
+      }
+      historyList.innerHTML = list
+        .map(
+          (item) => `
+        <div class="history-item">
+          <span class="hname">${item.name}</span>
+          <span class="hid">${item.assetId}</span>
+        </div>
+      `
+        )
+        .reverse()
+        .join('');
+    }
+
+    function addToHistory(name, assetId) {
+      const list = getHistory();
+      list.push({ name, assetId });
+      saveHistory(list);
+      renderHistory();
+    }
+
+    copyAllBtn.onclick = () => {
+      const list = getHistory();
+      if (list.length === 0) return alert('Belum ada history');
+      const text = list.map((item) => `${item.name} - ${item.assetId}`).join('\n');
+      navigator.clipboard.writeText(text);
+      copyAllBtn.textContent = 'Tersalin ✅';
+      setTimeout(() => (copyAllBtn.textContent = 'Copy All'), 1500);
+    };
+
+    clearHistoryBtn.onclick = () => {
+      if (!confirm('Yakin mau hapus semua history?')) return;
+      saveHistory([]);
+      renderHistory();
+    };
+
+    renderHistory();
 
     checkBtn.onclick = async () => {
       const files = fileInput.files;
@@ -209,8 +292,47 @@
             body: JSON.stringify({ tempPath: btn.dataset.path, displayName: btn.dataset.name }),
           });
           const data = await res.json();
-          btn.textContent = res.ok ? 'Terkirim ✅' : 'Gagal ❌';
-          if (!res.ok) console.error(data);
+
+          if (!res.ok) {
+            btn.textContent = 'Gagal ❌';
+            console.error(data);
+            return;
+          }
+
+          btn.textContent = 'Menunggu ID...';
+
+          const operationPath = data.operation && (data.operation.path || data.operation.id || data.operation.name);
+          const operationId = operationPath ? operationPath.split('/').pop() : null;
+
+          if (!operationId) {
+            btn.textContent = 'Terkirim ✅ (ID tidak diketahui)';
+            return;
+          }
+
+          for (let i = 0; i < 20; i++) {
+            await new Promise((r) => setTimeout(r, 3000));
+            try {
+              const statusRes = await fetch(`/api/upload-status/${operationId}`);
+              const statusData = await statusRes.json();
+
+              if (statusData.done) {
+                const assetId = statusData.response && statusData.response.assetId;
+                if (assetId) {
+                  btn.textContent = `✅ ID: ${assetId}`;
+                  btn.dataset.assetId = assetId;
+                  addToHistory(btn.dataset.name, assetId);
+                } else {
+                  btn.textContent = '⚠️ Ditolak/Error';
+                  console.error(statusData);
+                }
+                return;
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }
+
+          btn.textContent = '⏳ Masih diproses Roblox...';
         };
       });
 
