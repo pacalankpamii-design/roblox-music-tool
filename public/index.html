@@ -6,12 +6,155 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Consolas', 'Courier New', monospace;
       max-width: 800px;
       margin: 30px auto;
       padding: 0 16px;
-      background: #0d0d0d;
+      background: #0a0614;
       color: #eee;
+      position: relative;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    /* Glow blur ungu neon di background */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      width: 55vw;
+      height: 55vw;
+      border-radius: 50%;
+      filter: blur(70px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      top: -15%;
+      left: -15%;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.4), transparent 70%);
+      animation: floatGlow1 13s ease-in-out infinite alternate;
+    }
+    body::after {
+      bottom: -20%;
+      right: -15%;
+      background: radial-gradient(circle, rgba(217, 70, 239, 0.35), transparent 70%);
+      animation: floatGlow2 15s ease-in-out infinite alternate;
+    }
+    @keyframes floatGlow1 {
+      from { transform: translate(0, 0); }
+      to { transform: translate(40px, 30px); }
+    }
+    @keyframes floatGlow2 {
+      from { transform: translate(0, 0); }
+      to { transform: translate(-30px, -40px); }
+    }
+    /* Watermark tulisan PACALANK di belakang konten */
+    .bg-watermark {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      transform: rotate(-14deg) scale(1.4);
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-watermark .wm-row {
+      white-space: nowrap;
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: 10px;
+      color: rgba(168, 85, 247, 0.07);
+      text-shadow: 0 0 24px rgba(217, 70, 239, 0.12);
+    }
+    /* Konten utama ditaruh di atas background */
+    .header, #toastContainer, .card, .footer {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Canvas efek kode jatuh ala Matrix */
+    #matrixCanvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    /* Scanline ala layar CRT / terminal hacker */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        rgba(0, 0, 0, 0) 2px
+      );
+      mix-blend-mode: overlay;
+    }
+
+    /* Efek glitch di judul */
+    .header h1 {
+      position: relative;
+      animation: glitchShift 4s infinite;
+    }
+    .header h1::before,
+    .header h1::after {
+      content: 'PACALANK TOOLS';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+    .header h1::before {
+      color: #0ff;
+      animation: glitchTop 3s infinite linear alternate-reverse;
+      clip-path: inset(0 0 60% 0);
+    }
+    .header h1::after {
+      color: #ff00e6;
+      animation: glitchBottom 2.5s infinite linear alternate-reverse;
+      clip-path: inset(60% 0 0 0);
+    }
+    @keyframes glitchShift {
+      0%, 92%, 100% { transform: translate(0, 0); }
+      93% { transform: translate(-2px, 1px); }
+      95% { transform: translate(2px, -1px); }
+      97% { transform: translate(-1px, 0); }
+    }
+    @keyframes glitchTop {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-2px, -1px); }
+      40% { transform: translate(2px, 1px); }
+      60% { transform: translate(-1px, 1px); }
+      80% { transform: translate(1px, -1px); }
+      100% { transform: translate(0, 0); }
+    }
+    @keyframes glitchBottom {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(2px, 1px); }
+      40% { transform: translate(-2px, -1px); }
+      60% { transform: translate(1px, -1px); }
+      80% { transform: translate(-1px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    /* Kursor terminal berkedip di subtitle */
+    .header p::after {
+      content: '_';
+      animation: blinkCursor 1s step-end infinite;
+      color: #d946ef;
+    }
+    @keyframes blinkCursor {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
     }
     .header {
       text-align: center;
@@ -37,11 +180,12 @@
       margin-top: 4px;
     }
     .card {
-      background: #161616;
-      border: 1px solid #2a2a2a;
+      background: rgba(22, 17, 34, 0.85);
+      border: 1px solid rgba(168, 85, 247, 0.25);
       border-radius: 12px;
       padding: 18px;
       margin-bottom: 16px;
+      backdrop-filter: blur(6px);
     }
     .card h2 {
       font-size: 0.95rem;
@@ -49,6 +193,10 @@
       margin: 0 0 12px 0;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+    .card h2::before {
+      content: '> ';
+      color: #d946ef;
     }
     input[type="file"] {
       width: 100%;
@@ -92,6 +240,17 @@
       font-size: 0.8rem;
     }
     .row button:disabled { background: #555; cursor: not-allowed; }
+    .recheck-btn {
+      background: linear-gradient(135deg, #a855f7, #6b21a8) !important;
+      color: white;
+      font-size: 0.75rem;
+    }
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
     .status { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .filename { font-weight: 600; color: #eee; }
     .info-card { border-color: #333; }
@@ -132,6 +291,46 @@
     .history-item .hid { color: #ff8080; font-family: monospace; font-size: 0.8rem; }
     .history-empty { color: #666; font-size: 0.8rem; text-align: center; padding: 8px 0; }
 
+    /* Daftar file yang dipilih */
+    #selectedFilesList {
+      margin-bottom: 12px;
+    }
+    .selected-file {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      background: #0d0d0d;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: #eee;
+    }
+    .selected-file .file-num {
+      color: #ff3b3b;
+      font-weight: 700;
+      min-width: 20px;
+    }
+    .selected-file .file-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .selected-file .file-size {
+      color: #777;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+    audio {
+      height: 30px;
+      max-width: 160px;
+    }
+    audio::-webkit-media-controls-panel {
+      background: #1a1428;
+    }
+
     /* Toast notification */
     #toastContainer {
       position: fixed;
@@ -160,6 +359,17 @@
   </style>
 </head>
 <body>
+  <canvas id="matrixCanvas"></canvas>
+  <div class="scanlines"></div>
+
+  <div class="bg-watermark" aria-hidden="true">
+    <div class="wm-row">PACALANK &nbsp; PACALANK &nbsp; PACALANK</div>
+    <div class="wm-row">PACALANK &nbsp; PACALANK &nbsp; PACALANK</div>
+    <div class="wm-row">PACALANK &nbsp; PACALANK &nbsp; PACALANK</div>
+    <div class="wm-row">PACALANK &nbsp; PACALANK &nbsp; PACALANK</div>
+    <div class="wm-row">PACALANK &nbsp; PACALANK &nbsp; PACALANK</div>
+  </div>
+
   <div id="toastContainer"></div>
 
   <div class="header">
@@ -181,6 +391,21 @@
   <div class="card">
     <h2>Upload Audio</h2>
     <input type="file" id="fileInput" multiple accept="audio/*" />
+    <div id="selectedFilesList"></div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:0.8rem; color:#bbb; display:flex; justify-content:space-between; margin-bottom:6px;">
+        <span>🎚️ Kecepatan Musik</span>
+        <span id="speedValue">1.00x</span>
+      </label>
+      <input type="range" id="speedSlider" min="0.5" max="2" step="0.05" value="1" style="width:100%;" />
+      <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#666; margin-top:2px;">
+        <span>0.5x (lebih lambat)</span>
+        <span>1x (normal)</span>
+        <span>2x (lebih cepat)</span>
+      </div>
+    </div>
+
     <button class="btn-main" id="checkBtn">🔍 Cek & Tampilkan</button>
   </div>
 
@@ -193,6 +418,7 @@
       <li>Klik "Cek & Tampilkan" untuk lihat status copyright tiap file</li>
       <li>File aman (✅) bisa langsung diupload ke Roblox</li>
       <li>File terdeteksi (⚠️) tetap bisa diupload, tapi risiko ditolak moderasi Roblox</li>
+      <li>Geser slider "Kecepatan Musik" kalau mau lagu diupload versi lebih cepat/lambat (0.5x–2x)</li>
       <li>Asset ID baru muncul setelah moderasi Roblox selesai. Kalau ditolak, kamu akan dikasih notifikasi</li>
     </ol>
   </div>
@@ -209,6 +435,475 @@
   </div>
 
   <div class="footer">
+    <p>⚡ PACALANK TOOLS — dibuat untuk mempermudah manajemen musik Roblox</p>
+    <p class="disclaimer">Pre-check copyright bersifat perkiraan, keputusan akhir tetap ada di sistem moderasi Roblox.</p>
+  </div>
+
+  <script>
+    // --- Efek kode jatuh ala Matrix (warna ungu neon) ---
+    (function initMatrixRain() {
+      const canvas = document.getElementById('matrixCanvas');
+      const ctx = canvas.getContext('2d');
+      let columns, drops;
+      const chars = 'PACALANK01アイウエオカキクケコサシスセソ$#@%&*';
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = Math.floor(canvas.width / 18);
+        drops = new Array(columns).fill(1);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function draw() {
+        ctx.fillStyle = 'rgba(10, 6, 20, 0.08)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = '16px monospace';
+        for (let i = 0; i < drops.length; i++) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          const x = i * 18;
+          const y = drops[i] * 18;
+
+          ctx.fillStyle = Math.random() > 0.95 ? '#f0abfc' : '#a855f7';
+          ctx.fillText(char, x, y);
+
+          if (y > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i]++;
+        }
+      }
+      setInterval(draw, 50);
+    })();
+
+    const fileInput = document.getElementById('fileInput');
+    const selectedFilesList = document.getElementById('selectedFilesList');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+    const checkBtn = document.getElementById('checkBtn');
+
+    speedSlider.addEventListener('input', () => {
+      speedValue.textContent = parseFloat(speedSlider.value).toFixed(2) + 'x';
+    });
+
+    // --- Ubah kecepatan audio (client-side, pakai Web Audio API) ---
+    async function changeAudioSpeed(file, speed) {
+      const arrayBuffer = await file.arrayBuffer();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const newLength = Math.ceil(audioBuffer.length / speed);
+      const offlineCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        newLength,
+        audioBuffer.sampleRate
+      );
+
+      const source = offlineCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.playbackRate.value = speed;
+      source.connect(offlineCtx.destination);
+      source.start(0);
+
+      const renderedBuffer = await offlineCtx.startRendering();
+      const wavBlob = audioBufferToWav(renderedBuffer);
+      const newName = getSongTitle(file.name) + `_${speed.toFixed(2)}x.wav`;
+      return new File([wavBlob], newName, { type: 'audio/wav' });
+    }
+
+    function audioBufferToWav(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const samples =
+        numChannels === 2
+          ? interleave(buffer.getChannelData(0), buffer.getChannelData(1))
+          : buffer.getChannelData(0);
+
+      const bytesPerSample = 2;
+      const blockAlign = numChannels * bytesPerSample;
+      const arrBuffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+      const view = new DataView(arrBuffer);
+
+      const writeString = (offset, str) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      };
+
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * bytesPerSample, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, samples.length * bytesPerSample, true);
+
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function interleave(inputL, inputR) {
+      const length = inputL.length + inputR.length;
+      const result = new Float32Array(length);
+      let index = 0, inputIndex = 0;
+      while (index < length) {
+        result[index++] = inputL[inputIndex];
+        result[index++] = inputR[inputIndex];
+        inputIndex++;
+      }
+      return result;
+    }
+    const resultsDiv = document.getElementById('results');
+    const historyList = document.getElementById('historyList');
+    const copyAllBtn = document.getElementById('copyAllBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const toastContainer = document.getElementById('toastContainer');
+
+    // --- Notifikasi (toast + bunyi pendek) ---
+    function playBeep(freq = 440, duration = 0.15) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (err) {
+        console.error('Gagal memutar notifikasi suara', err);
+      }
+    }
+
+    function showToast(message, type = 'error', withSound = false) {
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + (type === 'ok' ? 'ok' : 'error');
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      if (withSound) {
+        // nada rendah untuk "ditolak", nada tinggi untuk "berhasil"
+        playBeep(type === 'ok' ? 880 : 220, 0.2);
+      }
+      setTimeout(() => toast.remove(), 5000);
+    }
+
+    function getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('pacalankHistory') || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory(list) {
+      localStorage.setItem('pacalankHistory', JSON.stringify(list));
+    }
+
+    function renderHistory() {
+      const list = getHistory();
+      if (list.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">Belum ada lagu yang berhasil diupload</div>';
+        return;
+      }
+      historyList.innerHTML = list
+        .map(
+          (item) => `
+        <div class="history-item">
+          <span class="hname">${item.name}</span>
+          <span class="hid">${item.assetId}</span>
+        </div>
+      `
+        )
+        .reverse()
+        .join('');
+    }
+
+    function addToHistory(name, assetId) {
+      const list = getHistory();
+      list.push({ name, assetId });
+      saveHistory(list);
+      renderHistory();
+    }
+
+    copyAllBtn.onclick = () => {
+      const list = getHistory();
+      if (list.length === 0) return alert('Belum ada history');
+      const text = list.map((item) => `${item.name} - ${item.assetId}`).join('\n');
+      navigator.clipboard.writeText(text);
+      copyAllBtn.textContent = 'Tersalin ✅';
+      setTimeout(() => (copyAllBtn.textContent = 'Copy All'), 1500);
+    };
+
+    clearHistoryBtn.onclick = () => {
+      if (!confirm('Yakin mau hapus semua history?')) return;
+      saveHistory([]);
+      renderHistory();
+    };
+
+    renderHistory();
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function getSongTitle(filename) {
+      // Buang ekstensi (.mp3, .wav, dll) biar cuma judulnya yang tampil
+      return filename.replace(/\.[^/.]+$/, '');
+    }
+
+    let selectedFileUrls = [];
+
+    fileInput.addEventListener('change', () => {
+      // Bersihkan object URL lama biar gak numpuk di memori
+      selectedFileUrls.forEach((url) => URL.revokeObjectURL(url));
+      selectedFileUrls = [];
+
+      const files = Array.from(fileInput.files);
+      if (files.length === 0) {
+        selectedFilesList.innerHTML = '';
+        return;
+      }
+      selectedFilesList.innerHTML = files
+        .map((f, i) => {
+          const url = URL.createObjectURL(f);
+          selectedFileUrls.push(url);
+          return `
+        <div class="selected-file">
+          <span class="file-num">${i + 1}.</span>
+          <span class="file-title">${getSongTitle(f.name)}</span>
+          <span class="file-size">${formatFileSize(f.size)}</span>
+          <audio controls src="${url}"></audio>
+        </div>
+      `;
+        })
+        .join('');
+    });
+
+    checkBtn.onclick = async () => {
+      let files = Array.from(fileInput.files);
+      if (!files.length) return alert('Pilih file dulu');
+
+      const speed = parseFloat(speedSlider.value);
+
+      if (speed !== 1) {
+        resultsDiv.innerHTML = `<p style="color:#999;">🎚️ Menyesuaikan kecepatan musik jadi ${speed.toFixed(2)}x...</p>`;
+        try {
+          files = await Promise.all(files.map((f) => changeAudioSpeed(f, speed)));
+        } catch (err) {
+          console.error(err);
+          alert('Gagal menyesuaikan kecepatan audio: ' + err.message);
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      for (const f of files) formData.append('files', f);
+
+      resultsDiv.innerHTML = '<p style="color:#999;">Mengecek...</p>';
+      const res = await fetch('/api/precheck', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      resultsDiv.innerHTML = '<div class="card"><h2>Hasil Pre-Check</h2></div>';
+      const container = resultsDiv.querySelector('.card');
+      const bulkBtnPlaceholder = document.createElement('div');
+      container.appendChild(bulkBtnPlaceholder);
+
+      data.results.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = 'row ' + (item.risky ? 'risky' : 'safe');
+        const previewUrl = files[i] ? URL.createObjectURL(files[i]) : '';
+        div.innerHTML = `
+          <div>
+            <div class="filename">${item.filename}</div>
+            <div class="status">
+              ${item.error ? item.error :
+                item.risky
+                  ? `⚠️ Terdeteksi: ${item.matchInfo.title} - ${item.matchInfo.artist}`
+                  : '✅ Tidak terdeteksi cocok dengan lagu di database'}
+            </div>
+            ${previewUrl ? `<audio controls src="${previewUrl}" style="margin-top:8px; max-width:220px;"></audio>` : ''}
+          </div>
+          <div class="row-actions">
+            <button data-path="${item.tempPath}" data-name="${item.filename}">Upload ke Roblox</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Cek status moderasi Roblox untuk satu assetId.
+      // maxAttempts x intervalMs = total waktu tunggu sebelum nyerah dan
+      // munculin tombol "Cek Ulang" manual.
+      async function pollModeration(btn, assetId, maxAttempts = 40, intervalMs = 4000) {
+        for (let j = 0; j < maxAttempts; j++) {
+          await new Promise((r) => setTimeout(r, intervalMs));
+          try {
+            const modRes = await fetch(`/api/asset-moderation/${assetId}`);
+            const modData = await modRes.json();
+            console.log(`[moderasi] ${btn.dataset.name} ->`, modData);
+
+            if (modData.status === 'Approved') {
+              btn.textContent = `✅ ID: ${assetId}`;
+              btn.dataset.assetId = assetId;
+              addToHistory(btn.dataset.name, assetId);
+              showToast(`"${btn.dataset.name}" lolos moderasi`, 'ok', true);
+              return;
+            }
+
+            if (modData.status === 'Rejected') {
+              btn.textContent = '❌ Ditolak Moderasi';
+              showToast(`🔇 Audio "${btn.dataset.name}" ditolak moderasi Roblox`, 'error', true);
+              return;
+            }
+            // status masih "Reviewing" -> lanjut menunggu
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
+        // Waktu tunggu otomatis habis, tapi moderasi bisa aja udah kelar
+        // di sisi Roblox. Kasih tombol buat cek ulang manual tanpa upload lagi.
+        btn.textContent = '⏳ Belum kelar, cek lagi manual ↓';
+        let recheckBtn = btn.parentElement.querySelector('.recheck-btn');
+        if (!recheckBtn) {
+          recheckBtn = document.createElement('button');
+          recheckBtn.className = 'recheck-btn';
+          recheckBtn.style.marginLeft = '6px';
+          btn.insertAdjacentElement('afterend', recheckBtn);
+        }
+        recheckBtn.textContent = '🔄 Cek Ulang';
+        recheckBtn.disabled = false;
+        recheckBtn.onclick = async () => {
+          recheckBtn.disabled = true;
+          recheckBtn.textContent = 'Mengecek...';
+          try {
+            const modRes = await fetch(`/api/asset-moderation/${assetId}`);
+            const modData = await modRes.json();
+            console.log(`[moderasi manual] ${btn.dataset.name} ->`, modData);
+
+            if (modData.status === 'Approved') {
+              btn.textContent = `✅ ID: ${assetId}`;
+              btn.dataset.assetId = assetId;
+              addToHistory(btn.dataset.name, assetId);
+              showToast(`"${btn.dataset.name}" lolos moderasi`, 'ok', true);
+              recheckBtn.remove();
+              return;
+            }
+
+            if (modData.status === 'Rejected') {
+              btn.textContent = '❌ Ditolak Moderasi';
+              showToast(`🔇 Audio "${btn.dataset.name}" ditolak moderasi Roblox`, 'error', true);
+              recheckBtn.remove();
+              return;
+            }
+
+            recheckBtn.textContent = '🔄 Masih direview, cek lagi';
+            recheckBtn.disabled = false;
+          } catch (err) {
+            console.error(err);
+            recheckBtn.textContent = '🔄 Gagal, coba lagi';
+            recheckBtn.disabled = false;
+          }
+        };
+      }
+
+      const rowButtons = container.querySelectorAll('.row button');
+      rowButtons.forEach((btn) => {
+        btn.onclick = async () => {
+          btn.disabled = true;
+          btn.textContent = 'Mengupload...';
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tempPath: btn.dataset.path, displayName: btn.dataset.name }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            btn.textContent = 'Gagal ❌';
+            showToast(`Gagal mengupload "${btn.dataset.name}"`, 'error', true);
+            console.error(data);
+            return;
+          }
+
+          btn.textContent = 'Menunggu upload...';
+
+          const operationPath = data.operation && (data.operation.path || data.operation.id || data.operation.name);
+          const operationId = operationPath ? operationPath.split('/').pop() : null;
+
+          if (!operationId) {
+            btn.textContent = 'Terkirim ✅ (ID tidak diketahui)';
+            return;
+          }
+
+          // Tahap 1: tunggu operasi upload selesai (assetId dibuat)
+          let assetId = null;
+          for (let i = 0; i < 20; i++) {
+            await new Promise((r) => setTimeout(r, 3000));
+            try {
+              const statusRes = await fetch(`/api/upload-status/${operationId}`);
+              const statusData = await statusRes.json();
+
+              if (statusData.done) {
+                assetId = statusData.response && statusData.response.assetId;
+                if (!assetId) {
+                  btn.textContent = '❌ Gagal / Error';
+                  showToast(`Upload "${btn.dataset.name}" gagal atau error`, 'error', true);
+                  console.error(statusData);
+                  return;
+                }
+                break;
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }
+
+          if (!assetId) {
+            btn.textContent = '⏳ Masih diproses Roblox...';
+            return;
+          }
+
+          // Tahap 2: tunggu hasil moderasi Roblox sebelum tampilkan ID
+          btn.textContent = '🕓 Menunggu moderasi Roblox...';
+          await pollModeration(btn, assetId);
+        };
+      });
+
+      const safeItems = data.results.filter((item) => !item.risky && !item.error);
+      if (safeItems.length > 0) {
+        const bulkBtn = document.createElement('button');
+        bulkBtn.className = 'btn-main';
+        bulkBtn.style.marginBottom = '12px';
+        bulkBtn.textContent = `⬆️ Upload Semua yang Aman (${safeItems.length})`;
+        bulkBtn.onclick = async () => {
+          bulkBtn.disabled = true;
+          for (const item of safeItems) {
+            const btn = container.querySelector(`.row button[data-path="${CSS.escape(item.tempPath)}"]`);
+            if (btn) await btn.onclick();
+          }
+          bulkBtn.textContent = 'Semua Terkirim ✅';
+        };
+        bulkBtnPlaceholder.appendChild(bulkBtn);
+      }
+    };
+  </script>
+</body>
+</html>
     <p>⚡ PACALANK TOOLS — dibuat untuk mempermudah manajemen musik Roblox</p>
     <p class="disclaimer">Pre-check copyright bersifat perkiraan, keputusan akhir tetap ada di sistem moderasi Roblox.</p>
   </div>
