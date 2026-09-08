@@ -131,9 +131,37 @@
     .history-item .hname { color: #eee; font-weight: 600; }
     .history-item .hid { color: #ff8080; font-family: monospace; font-size: 0.8rem; }
     .history-empty { color: #666; font-size: 0.8rem; text-align: center; padding: 8px 0; }
+
+    /* Toast notification */
+    #toastContainer {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 999;
+    }
+    .toast {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      animation: slideIn 0.2s ease-out;
+      max-width: 280px;
+    }
+    .toast.error { background: linear-gradient(135deg, #ff3b3b, #7a0000); }
+    .toast.ok { background: linear-gradient(135deg, #2a2, #145214); }
+    @keyframes slideIn {
+      from { transform: translateX(20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
+  <div id="toastContainer"></div>
+
   <div class="header">
     <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -165,6 +193,7 @@
       <li>Klik "Cek & Tampilkan" untuk lihat status copyright tiap file</li>
       <li>File aman (✅) bisa langsung diupload ke Roblox</li>
       <li>File terdeteksi (⚠️) tetap bisa diupload, tapi risiko ditolak moderasi Roblox</li>
+      <li>Asset ID baru muncul setelah moderasi Roblox selesai. Kalau ditolak, kamu akan dikasih notifikasi</li>
     </ol>
   </div>
 
@@ -191,6 +220,37 @@
     const historyList = document.getElementById('historyList');
     const copyAllBtn = document.getElementById('copyAllBtn');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const toastContainer = document.getElementById('toastContainer');
+
+    // --- Notifikasi (toast + bunyi pendek) ---
+    function playBeep(freq = 440, duration = 0.15) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (err) {
+        console.error('Gagal memutar notifikasi suara', err);
+      }
+    }
+
+    function showToast(message, type = 'error', withSound = false) {
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + (type === 'ok' ? 'ok' : 'error');
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      if (withSound) {
+        // nada rendah untuk "ditolak", nada tinggi untuk "berhasil"
+        playBeep(type === 'ok' ? 880 : 220, 0.2);
+      }
+      setTimeout(() => toast.remove(), 5000);
+    }
 
     function getHistory() {
       try {
@@ -295,11 +355,12 @@
 
           if (!res.ok) {
             btn.textContent = 'Gagal ❌';
+            showToast(`Gagal mengupload "${btn.dataset.name}"`, 'error', true);
             console.error(data);
             return;
           }
 
-          btn.textContent = 'Menunggu ID...';
+          btn.textContent = 'Menunggu upload...';
 
           const operationPath = data.operation && (data.operation.path || data.operation.id || data.operation.name);
           const operationId = operationPath ? operationPath.split('/').pop() : null;
@@ -309,6 +370,8 @@
             return;
           }
 
+          // Tahap 1: tunggu operasi upload selesai (assetId dibuat)
+          let assetId = null;
           for (let i = 0; i < 20; i++) {
             await new Promise((r) => setTimeout(r, 3000));
             try {
@@ -316,23 +379,57 @@
               const statusData = await statusRes.json();
 
               if (statusData.done) {
-                const assetId = statusData.response && statusData.response.assetId;
-                if (assetId) {
-                  btn.textContent = `✅ ID: ${assetId}`;
-                  btn.dataset.assetId = assetId;
-                  addToHistory(btn.dataset.name, assetId);
-                } else {
-                  btn.textContent = '⚠️ Ditolak/Error';
+                assetId = statusData.response && statusData.response.assetId;
+                if (!assetId) {
+                  btn.textContent = '❌ Gagal / Error';
+                  showToast(`Upload "${btn.dataset.name}" gagal atau error`, 'error', true);
                   console.error(statusData);
+                  return;
                 }
-                return;
+                break;
               }
             } catch (err) {
               console.error(err);
             }
           }
 
-          btn.textContent = '⏳ Masih diproses Roblox...';
+          if (!assetId) {
+            btn.textContent = '⏳ Masih diproses Roblox...';
+            return;
+          }
+
+          // Tahap 2: tunggu hasil moderasi Roblox sebelum tampilkan ID
+          // Catatan: endpoint /api/asset-moderation/:assetId perlu diimplementasikan
+          // di backend, memanggil Roblox Open Cloud untuk cek `moderationStatus`
+          // asset tersebut (nilai umumnya: Reviewing / Approved / Rejected).
+          btn.textContent = '🕓 Menunggu moderasi Roblox...';
+
+          for (let j = 0; j < 40; j++) {
+            await new Promise((r) => setTimeout(r, 4000));
+            try {
+              const modRes = await fetch(`/api/asset-moderation/${assetId}`);
+              const modData = await modRes.json();
+
+              if (modData.status === 'Approved') {
+                btn.textContent = `✅ ID: ${assetId}`;
+                btn.dataset.assetId = assetId;
+                addToHistory(btn.dataset.name, assetId);
+                showToast(`"${btn.dataset.name}" lolos moderasi`, 'ok', true);
+                return;
+              }
+
+              if (modData.status === 'Rejected') {
+                btn.textContent = '❌ Ditolak Moderasi';
+                showToast(`🔇 Audio "${btn.dataset.name}" ditolak moderasi Roblox`, 'error', true);
+                return;
+              }
+              // status masih "Reviewing" -> lanjut menunggu
+            } catch (err) {
+              console.error(err);
+            }
+          }
+
+          btn.textContent = '⏳ Moderasi masih berjalan, cek lagi nanti...';
         };
       });
 
@@ -355,4 +452,4 @@
     };
   </script>
 </body>
-  </html>
+</html>
