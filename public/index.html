@@ -17,6 +17,13 @@
       text-align: center;
       margin-bottom: 24px;
     }
+    .header .logo {
+      width: 64px;
+      height: 64px;
+      display: block;
+      margin: 0 auto 8px auto;
+      filter: drop-shadow(0 0 10px rgba(255,59,59,0.5));
+    }
     .header h1 {
       font-size: 1.8rem;
       margin: 0;
@@ -87,11 +94,45 @@
     .row button:disabled { background: #555; cursor: not-allowed; }
     .status { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .filename { font-weight: 600; color: #eee; }
+    .info-card { border-color: #333; }
+    .info-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #bbb;
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding: 16px 0;
+      border-top: 1px solid #222;
+    }
+    .footer p {
+      margin: 4px 0;
+      font-size: 0.8rem;
+      color: #777;
+    }
+    .footer .disclaimer {
+      color: #555;
+      font-size: 0.72rem;
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>🎵 PACALANK TOOLS</h1>
+    <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ff3b3b"/>
+          <stop offset="100%" stop-color="#7a0000"/>
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="46" fill="url(#logoGrad)" stroke="#ff8080" stroke-width="2"/>
+      <path d="M40 65 a7 7 0 1 0 0.01 0 M40 65 V32 l22 -6 v28 M62 26 a7 7 0 1 0 0.01 0"
+            fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>PACALANK TOOLS</h1>
     <p>Bulk Upload Musik ke Roblox + Copyright Pre-Check</p>
   </div>
 
@@ -102,6 +143,21 @@
   </div>
 
   <div id="results"></div>
+
+  <div class="card info-card">
+    <h2>ℹ️ Cara Pakai</h2>
+    <ol class="info-list">
+      <li>Pilih file musik (mp3/wav), bisa lebih dari satu</li>
+      <li>Klik "Cek & Tampilkan" untuk lihat status copyright tiap file</li>
+      <li>File aman (✅) bisa langsung diupload ke Roblox</li>
+      <li>File terdeteksi (⚠️) tetap bisa diupload, tapi risiko ditolak moderasi Roblox</li>
+    </ol>
+  </div>
+
+  <div class="footer">
+    <p>⚡ PACALANK TOOLS — dibuat untuk mempermudah manajemen musik Roblox</p>
+    <p class="disclaimer">Pre-check copyright bersifat perkiraan, keputusan akhir tetap ada di sistem moderasi Roblox.</p>
+  </div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
@@ -121,6 +177,8 @@
 
       resultsDiv.innerHTML = '<div class="card"><h2>Hasil Pre-Check</h2></div>';
       const container = resultsDiv.querySelector('.card');
+      const bulkBtnPlaceholder = document.createElement('div');
+      container.appendChild(bulkBtnPlaceholder);
 
       data.results.forEach((item) => {
         const div = document.createElement('div');
@@ -140,7 +198,8 @@
         container.appendChild(div);
       });
 
-      container.querySelectorAll('button').forEach((btn) => {
+      const rowButtons = container.querySelectorAll('.row button');
+      rowButtons.forEach((btn) => {
         btn.onclick = async () => {
           btn.disabled = true;
           btn.textContent = 'Mengupload...';
@@ -154,7 +213,24 @@
           if (!res.ok) console.error(data);
         };
       });
+
+      const safeItems = data.results.filter((item) => !item.risky && !item.error);
+      if (safeItems.length > 0) {
+        const bulkBtn = document.createElement('button');
+        bulkBtn.className = 'btn-main';
+        bulkBtn.style.marginBottom = '12px';
+        bulkBtn.textContent = `⬆️ Upload Semua yang Aman (${safeItems.length})`;
+        bulkBtn.onclick = async () => {
+          bulkBtn.disabled = true;
+          for (const item of safeItems) {
+            const btn = container.querySelector(`.row button[data-path="${CSS.escape(item.tempPath)}"]`);
+            if (btn) await btn.onclick();
+          }
+          bulkBtn.textContent = 'Semua Terkirim ✅';
+        };
+        bulkBtnPlaceholder.appendChild(bulkBtn);
+      }
     };
   </script>
 </body>
-</html>
+  </html>
