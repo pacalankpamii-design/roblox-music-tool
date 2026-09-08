@@ -139,6 +139,65 @@ app.get('/api/upload-status/:operationId', async (req, res) => {
 app.get('/api/asset-moderation/:assetId', async (req, res) => {
   try {
     const response = await fetch(
+      `https://apis.roblox.com/assets/v1/assets/${req.params.assetId}`,
+      { headers: { 'x-api-key': process.env.ROBLOX_API_KEY } }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data });
+    }
+
+    console.log('[asset-moderation] raw response:', JSON.stringify(data));
+
+    const rawState =
+      (data.moderationResult && data.moderationResult.moderationState) || '';
+
+    let status = 'Reviewing';
+    if (rawState.includes('APPROVED')) status = 'Approved';
+    else if (rawState.includes('REJECTED')) status = 'Rejected';
+
+    res.json({ status, raw: rawState });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server jalan di http://localhost:${PORT}`);
+});
+  }
+});
+
+// ---------------------------------------------------------
+// 3) CEK STATUS OPERASI UPLOAD (moderasi Roblox butuh waktu)
+// ---------------------------------------------------------
+app.get('/api/upload-status/:operationId', async (req, res) => {
+  try {
+    const response = await fetch(
+      `https://apis.roblox.com/assets/v1/operations/${req.params.operationId}`,
+      { headers: { 'x-api-key': process.env.ROBLOX_API_KEY } }
+    );
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------
+// 4) CEK STATUS MODERASI ASSET (setelah upload selesai)
+//    Beda dengan /api/upload-status: itu ngecek proses UPLOAD-nya
+//    selesai atau belum. Ini ngecek hasil MODERASI Roblox terhadap
+//    asset yang sudah jadi (moderationResult.moderationState).
+//    Nilai dari Roblox: MODERATION_STATE_REVIEWING,
+//    MODERATION_STATE_APPROVED, MODERATION_STATE_REJECTED
+//    (kita sederhanakan jadi Reviewing / Approved / Rejected).
+// ---------------------------------------------------------
+app.get('/api/asset-moderation/:assetId', async (req, res) => {
+  try {
+    const response = await fetch(
       `https://apis.roblox.com/assets/v1/assets/${req.params.assetId}?readMask=moderationResult`,
       { headers: { 'x-api-key': process.env.ROBLOX_API_KEY } }
     );
