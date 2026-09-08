@@ -2,26 +2,106 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Roblox Music Bulk Uploader</title>
+  <title>PACALANK TOOLS</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
-    h1 { font-size: 1.4rem; }
-    .row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; }
-    .risky { border-color: #e33; background: #fff5f5; }
-    .safe { border-color: #2a2; background: #f5fff7; }
-    button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: none; background: #333; color: white; }
-    button:disabled { background: #aaa; cursor: not-allowed; }
-    .status { font-size: 0.85rem; color: #666; margin-left: 8px; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 16px;
+      background: #0d0d0d;
+      color: #eee;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 1.8rem;
+      margin: 0;
+      color: #ff3b3b;
+      letter-spacing: 1px;
+      text-shadow: 0 0 12px rgba(255,59,59,0.5);
+    }
+    .header p {
+      color: #999;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+    .card {
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      color: #ff3b3b;
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      background: #0d0d0d;
+      border: 1px dashed #444;
+      border-radius: 8px;
+      color: #ccc;
+      margin-bottom: 12px;
+    }
+    button {
+      cursor: pointer;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .btn-main {
+      background: linear-gradient(135deg, #ff3b3b, #b30000);
+      color: white;
+      width: 100%;
+      font-size: 0.95rem;
+    }
+    .btn-main:hover { opacity: 0.9; }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #2a2a2a;
+      background: #0d0d0d;
+    }
+    .risky { border-color: #ff3b3b; background: #1a0d0d; }
+    .safe { border-color: #2a2; background: #0d1a0d; }
+    .row button {
+      background: #333;
+      color: white;
+      font-size: 0.8rem;
+    }
+    .row button:disabled { background: #555; cursor: not-allowed; }
+    .status { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .filename { font-weight: 600; color: #eee; }
   </style>
 </head>
 <body>
-  <h1>🎵 Bulk Upload Musik ke Roblox</h1>
-  <p>Pilih beberapa file musik, sistem akan cek dulu potensi copyright-nya sebelum kamu upload.</p>
+  <div class="header">
+    <h1>🎵 PACALANK TOOLS</h1>
+    <p>Bulk Upload Musik ke Roblox + Copyright Pre-Check</p>
+  </div>
 
-  <input type="file" id="fileInput" multiple accept="audio/*" />
-  <button id="checkBtn">Cek & Tampilkan</button>
+  <div class="card">
+    <h2>Upload Audio</h2>
+    <input type="file" id="fileInput" multiple accept="audio/*" />
+    <button class="btn-main" id="checkBtn">🔍 Cek & Tampilkan</button>
+  </div>
 
-  <div id="results" style="margin-top: 20px;"></div>
+  <div id="results"></div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
@@ -35,17 +115,19 @@
       const formData = new FormData();
       for (const f of files) formData.append('files', f);
 
-      resultsDiv.innerHTML = 'Mengecek...';
+      resultsDiv.innerHTML = '<p style="color:#999;">Mengecek...</p>';
       const res = await fetch('/api/precheck', { method: 'POST', body: formData });
       const data = await res.json();
 
-      resultsDiv.innerHTML = '';
+      resultsDiv.innerHTML = '<div class="card"><h2>Hasil Pre-Check</h2></div>';
+      const container = resultsDiv.querySelector('.card');
+
       data.results.forEach((item) => {
         const div = document.createElement('div');
         div.className = 'row ' + (item.risky ? 'risky' : 'safe');
         div.innerHTML = `
           <div>
-            <strong>${item.filename}</strong>
+            <div class="filename">${item.filename}</div>
             <div class="status">
               ${item.error ? item.error :
                 item.risky
@@ -55,10 +137,10 @@
           </div>
           <button data-path="${item.tempPath}" data-name="${item.filename}">Upload ke Roblox</button>
         `;
-        resultsDiv.appendChild(div);
+        container.appendChild(div);
       });
 
-      resultsDiv.querySelectorAll('button').forEach((btn) => {
+      container.querySelectorAll('button').forEach((btn) => {
         btn.onclick = async () => {
           btn.disabled = true;
           btn.textContent = 'Mengupload...';
