@@ -1,0 +1,17 @@
+{
+  "name": "roblox-music-tool",
+  "version": "1.0.0",
+  "description": "Bulk upload musik ke Roblox + pre-check risiko copyright",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
+    "form-data": "^4.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
